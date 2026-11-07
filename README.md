@@ -1,6 +1,6 @@
 # Quartz
 
-Terminal emulator
+Terminal emulator for Linux.
 
 Requires:
 - python3
