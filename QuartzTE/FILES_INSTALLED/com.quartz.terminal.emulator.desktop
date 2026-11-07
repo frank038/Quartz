@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.1
+Type=Application
+Name=Quartz
+Comment=Terminal emulator
+Icon=/usr/share/QuartzTE/icons/com.quartz.terminal.emulator.svg
+Path=/usr/share/QuartzTE
+Exec=/usr/share/QuartzTE/QuartzTE-installed.sh
+Categories=Utility;
+Keywords=Terminal;Emulator;
