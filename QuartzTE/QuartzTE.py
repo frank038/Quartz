@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.1 beta"
+VERSION = "0.8.2 beta"
 ENAME = "Quartz"
 ESITE = "https://github.com/frank038/Quartz"
 
@@ -615,7 +615,12 @@ class ScrolWin(Gtk.ScrolledWindow):
         self.tab_label = box
     
     def on_child_exited(self, terminal, _status):
-        self.main_app.app_.quit()
+        n_items = self.main_app._notebook.get_n_pages()
+        if n_items == 1:
+            self.main_app.app_.quit()
+        else:
+            self.terminal.unrealize()
+            self.main_app._notebook.remove_page(self.main_app._notebook.get_current_page())
         
     def on_close_this(self, w=None):
         ret = self.main_app.terminate_process(self.terminal.pid)
