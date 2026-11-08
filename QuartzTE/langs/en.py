@@ -1,5 +1,6 @@
 TERMINALEMULATOR="Terminal Emulator"
 NEWTERM="New terminal"
+NEWTAB="New tab"
 FSETTINGS="Settings"
 ABOUT="About"
 QUIT="Quit"
