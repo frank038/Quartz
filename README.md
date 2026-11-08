@@ -13,6 +13,7 @@ Features:
 - the most common for a terminal emulator
 - command line options: -e for executing a terminal program; -w for passing a target folder
 - graphical dialog settings
+- usable in portable mode or installable (just making a package or by using a script)
 
 
 ![My image](https://github.com/frank038/Quartz/blob/main/screenshot.png)
