@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.0 beta"
+VERSION = "0.8.1 beta"
 ENAME = "Quartz"
 ESITE = "https://github.com/frank038/Quartz"
 
@@ -167,6 +167,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self._notebook = Gtk.Notebook.new()
         self.editor_box.append(self._notebook)
         self._notebook.set_focusable(False)
+        self._notebook.set_scrollable(True)
         #
         if self._files and os.path.exists(self._files[0].get_path()):
             _p = self._files[0].get_path()
@@ -195,10 +196,18 @@ class MainWindow(Gtk.ApplicationWindow):
         idx = self._notebook.append_page(sw, sw.tab_label)
         self._notebook.set_tab_reorderable(sw, True)
         self._notebook.set_current_page(idx)
+        if COMMANDLINE_PEXEC != None:
+            self._notebook.set_show_tabs(False)
+            self.set_title(COMMANDLINE_PEXEC)
         sw.terminal.grab_focus()
-        
+    
+    # launch a new terminal
     def on_new_action(self, action, param):
-        self.new_tab(_HOME)
+        # self.new_tab(_HOME)
+        try:
+            subprocess.Popen([os.path.join(HOME_CONFIG,"QuartzTE.sh"), "-w", _HOME])
+        except Exception as E:
+            AlDial(self_main, str(E))
         
     def on_notebook_switch_page(self, _notebook, _sw, i_sw):
         pass
@@ -476,8 +485,8 @@ class ScrolWin(Gtk.ScrolledWindow):
         #
         global COMMANDLINE_PEXEC
         if COMMANDLINE_PEXEC and shutil.which(COMMANDLINE_PEXEC):
-             _cmd = ["/usr/bin/bash", "-c", COMMANDLINE_PEXEC]
-             COMMANDLINE_PEXEC = -1
+            _cmd = ["/usr/bin/bash", "-c", COMMANDLINE_PEXEC]
+            # COMMANDLINE_PEXEC = -1
         else:
             _cmd = ["/usr/bin/bash"]
         term_path = self._path
@@ -518,7 +527,7 @@ class ScrolWin(Gtk.ScrolledWindow):
         self.terminal.set_context_menu_model(self.file_menu)
         #
         if COMMANDLINE_PEXEC == None:
-            self.file_menu.append(_lang.NEWTERM, 'win.NewTerm2')
+            self.file_menu.append(_lang.NEWTAB, 'win.NewTerm2')
             button_nt2 = Gio.SimpleAction(name="NewTerm2", parameter_type=None, enabled=True)
             button_nt2.connect("activate", self.on_new_term2)
             action_group.add_action(button_nt2)
@@ -540,10 +549,11 @@ class ScrolWin(Gtk.ScrolledWindow):
             action_group.add_action(button_ps2)
         
     def on_new_term2(self, action, param):
-        try:
-            subprocess.Popen([os.path.join(HOME_CONFIG,"QuartzTE.sh"), "-w", self._path])
-        except Exception as E:
-            AlDial(self_main, str(E))
+        # try:
+            # subprocess.Popen([os.path.join(HOME_CONFIG,"QuartzTE.sh"), "-w", self._path])
+        # except Exception as E:
+            # AlDial(self_main, str(E))
+        self.main_app.new_tab(self._path)
     
     def on_copy_selection(self, action, param):
         _text = self.terminal.get_text_selected(Vte.Format.TEXT)
