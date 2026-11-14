@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.3 beta"
+VERSION = "0.8.4 beta"
 ENAME = "Quartz"
 ESITE = "https://github.com/frank038/Quartz"
 
@@ -704,6 +704,10 @@ class ScrolWin(Gtk.ScrolledWindow):
         if isinstance(ret, str):
             YNDial(self_main, _lang.TMSG2, ret, "CLOSEAPP", self.terminal)
             self.terminal.grab_focus()
+        elif ret == 0:
+            if self.main_app._notebook.get_n_pages() > 1:
+                idx = self.main_app._notebook.get_current_page()
+                self.main_app._notebook.remove_page(idx)
         elif ret == -1:
             AlDial(self_main, _lang.TMSG1)
             self.terminal.grab_focus()
