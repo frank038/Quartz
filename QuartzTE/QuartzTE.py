@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.2 beta"
+VERSION = "0.8.3 beta"
 ENAME = "Quartz"
 ESITE = "https://github.com/frank038/Quartz"
 
@@ -174,7 +174,7 @@ class MainWindow(Gtk.ApplicationWindow):
         else:
             _p = _HOME
         #
-        self.new_tab(_p)
+        self.new_tab(_p, 0)
         #
         # self._notebook.connect("switch-page", self.on_notebook_switch_page)
         self._notebook.connect("change-current-page", self.on_notebook_change_page)
@@ -191,9 +191,13 @@ class MainWindow(Gtk.ApplicationWindow):
     # def on_this_show(self, _w):
         # pass
     
-    def new_tab(self, _path):
+    def new_tab(self, _path, _type):
         sw = ScrolWin(self, _path)
-        idx = self._notebook.append_page(sw, sw.tab_label)
+        if _type == 0:
+            idx = self._notebook.append_page(sw, sw.tab_label)
+        elif _type == 1:
+            curr_idx = self._notebook.get_current_page()
+            idx = self._notebook.insert_page(sw, sw.tab_label, curr_idx+1)
         self._notebook.set_tab_reorderable(sw, True)
         self._notebook.set_current_page(idx)
         if COMMANDLINE_PEXEC != None:
@@ -217,16 +221,6 @@ class MainWindow(Gtk.ApplicationWindow):
     
     def on_notebook_page_reordered(self, notebook, child, page_num):
         child.terminal.grab_focus()
-    
-    def dialog_action(self, _obj, _res, _data=None):
-        _result = _obj.choose_finish(_res)
-        if _result == 0:
-            if SINGLE_APP == 0:
-                self.app_.quit()
-            else:
-                self.destroy()
-        else:
-            return
         
     def find_last_process_child(self, _pid):
         ps_command = subprocess.Popen("ps -o pid --ppid {} --noheaders".format(_pid), shell=True, stdout=subprocess.PIPE)
@@ -244,7 +238,20 @@ class MainWindow(Gtk.ApplicationWindow):
                     return int(_npid)
                 else:
                     _npid = int(ps_output)
-        
+    
+    def terminate_process_check(self, _pid):
+        ps_command = subprocess.Popen("ps -o pid --ppid {} --noheaders".format(int(_pid)), shell=True, stdout=subprocess.PIPE)
+        ps_output = ps_command.stdout.read().decode().strip()
+        retcode = ps_command.wait()
+        if retcode == 0 and ps_output != '':
+            ret = self.find_last_process_child(int(ps_output))
+            try:
+                ret1 = subprocess.check_output(["ps", "-o", "cmd=", str(ret)]).decode().strip("\n")
+                return ret1
+            except:
+                return -1
+        return 0
+    
     def terminate_process(self, _pid):
         ps_command = subprocess.Popen("ps -o pid --ppid {} --noheaders".format(int(_pid)), shell=True, stdout=subprocess.PIPE)
         ps_output = ps_command.stdout.read().decode().strip()
@@ -265,17 +272,78 @@ class MainWindow(Gtk.ApplicationWindow):
                 return -1
         return 0
     
+    def dialog_action(self, _obj, _res, _data=None, _data2=None):
+        if _data == "CLOSEAPP":
+            _result = _obj.choose_finish(_res)
+            if _result == 0:
+                _terminal = _data2
+                #
+                ret = self.terminate_process(_terminal.pid)
+                if ret == 0:
+                    if self._notebook.get_n_pages() > 1:
+                        idx = self._notebook.get_current_page()
+                        self._notebook.remove_page(idx)
+                elif ret == -1:
+                    AlDial(self, _lang.TMSG1)
+                    _terminal.grab_focus()
+        elif _data == "CLOSEAPP2":
+            _result = _obj.choose_finish(_res)
+            if _result == 0:
+                _terminal = _data2
+                #
+                ret = self.terminate_process(_terminal.pid)
+                if ret == 0:
+                    if self._notebook.get_n_pages() > 1:
+                        idx = self._notebook.get_current_page()
+                        self._notebook.remove_page(idx)
+                    if self._notebook.get_n_pages() == 1:
+                        self.app_.quit()
+                    else:
+                        self.on_quit_action_actived()
+                elif ret == -1:
+                    AlDial(self, _lang.TMSG1)
+                    _terminal.grab_focus()
+        elif _data == None:
+            _result = _obj.choose_finish(_res)
+            if _result == 0:
+                if SINGLE_APP == 0:
+                    self.app_.quit()
+                else:
+                    self.destroy()
+            else:
+                return
+    
     def on_quit_action_actived(self, action=None, param=None):
-        n_pages = self._notebook.get_n_pages()
-        if n_pages > 1:
-            for i in range(n_pages):
-                _page = self._notebook.get_nth_page(i)
-                _terminal = _page.terminal
-                ret = self.terminate_process(int(_terminal.pid))
-                if ret == -1:
-                    return
+        # n_pages = self._notebook.get_n_pages()
+        # if n_pages > 1:
+            # for i in range(n_pages):
+                # _page = self._notebook.get_nth_page(i)
+                # _terminal = _page.terminal
+                # ret = self.terminate_process(int(_terminal.pid))
+                # if ret == -1:
+                    # return
         #
-        self.app_.quit()
+        # self.app_.quit()
+        #
+        n_pages = self._notebook.get_n_pages()
+        if n_pages > 0:
+            for i in range(n_pages-1, -1, -1):
+                _page = self._notebook.get_nth_page(i)
+                # if _page == None:
+                    # continue
+                _terminal = _page.terminal
+                ret = self.terminate_process_check(_terminal.pid)
+                if isinstance(ret, str):
+                    YNDial(self_main, _lang.TMSG2, ret, "CLOSEAPP2", _terminal)
+                    _terminal.grab_focus()
+                    break
+                # elif ret == -1:
+                    # return
+                elif ret == 0:
+                    self._notebook.remove_page(i)
+                    n_pages = self._notebook.get_n_pages()
+                    if n_pages == 0:
+                        self.app_.quit()
     
     def on_this_close(self, _w):
         _term = self._notebook.get_nth_page(0).terminal
@@ -553,7 +621,7 @@ class ScrolWin(Gtk.ScrolledWindow):
             # subprocess.Popen([os.path.join(HOME_CONFIG,"QuartzTE.sh"), "-w", self._path])
         # except Exception as E:
             # AlDial(self_main, str(E))
-        self.main_app.new_tab(self._path)
+        self.main_app.new_tab(self._path, 1)
     
     def on_copy_selection(self, action, param):
         _text = self.terminal.get_text_selected(Vte.Format.TEXT)
@@ -623,11 +691,19 @@ class ScrolWin(Gtk.ScrolledWindow):
             self.main_app._notebook.remove_page(self.main_app._notebook.get_current_page())
         
     def on_close_this(self, w=None):
-        ret = self.main_app.terminate_process(self.terminal.pid)
-        if ret == 0:
-            if self.main_app._notebook.get_n_pages() > 1:
-                idx = self.main_app._notebook.get_current_page()
-                self.main_app._notebook.remove_page(idx)
+        # ret = self.main_app.terminate_process(self.terminal.pid)
+        # if ret == 0:
+            # if self.main_app._notebook.get_n_pages() > 1:
+                # idx = self.main_app._notebook.get_current_page()
+                # self.main_app._notebook.remove_page(idx)
+        # elif ret == -1:
+            # AlDial(self_main, _lang.TMSG1)
+            # self.terminal.grab_focus()
+        #
+        ret = self.main_app.terminate_process_check(self.terminal.pid)
+        if isinstance(ret, str):
+            YNDial(self_main, _lang.TMSG2, ret, "CLOSEAPP", self.terminal)
+            self.terminal.grab_focus()
         elif ret == -1:
             AlDial(self_main, _lang.TMSG1)
             self.terminal.grab_focus()
@@ -642,13 +718,15 @@ class AlDial(Gtk.AlertDialog):
         #
         self.show(self._parent)
 
-# yes/no dialog - close the application and check for modified files
+# yes/no dialog
 class YNDial(Gtk.AlertDialog):
-    def __init__(self, _parent, _str1, _str2):
+    def __init__(self, _parent, _str1, _str2, _data, _data2):
         super().__init__()
         self._parent = _parent
         self._str1 = _str1
         self._str2 = _str2
+        self._data = _data
+        self._data2 = _data2
         #
         self.set_buttons([_lang.YES, _lang.NO])
         self.props.cancel_button = 1
@@ -656,7 +734,7 @@ class YNDial(Gtk.AlertDialog):
         self.set_message(self._str1)
         self.set_detail(self._str2)
         #
-        self.choose(self._parent, None, self._parent.dialog_action, None)
+        self.choose(self._parent, None, self._parent.dialog_action, self._data, self._data2)
 
 ##################
 
