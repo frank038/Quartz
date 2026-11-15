@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.4 beta"
+VERSION = "0.9.0 beta"
 ENAME = "Quartz"
 ESITE = "https://github.com/frank038/Quartz"
 
@@ -9,7 +9,8 @@ import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Vte', '3.91')
 gi.require_version('Pango', '1.0')
-from gi.repository import Gtk,Gdk,GLib,Gio,Vte,Pango,GObject
+gi.require_version("Adw", '1')
+from gi.repository import Gtk,Gdk,GLib,Gio,Vte,Pango,GObject,Adw
 import json
 import subprocess
 import signal
@@ -106,7 +107,7 @@ MENU_XML="""
 """.format(_lang.NEWTERM, _lang.FSETTINGS, _lang.ABOUT, _lang.QUIT)
 
 
-class MainWindow(Gtk.ApplicationWindow):
+class MainWindow(Adw.ApplicationWindow):
     def __init__(self, _files, n_files, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.set_default_size(WWIDTH, WHEIGHT)
@@ -118,7 +119,6 @@ class MainWindow(Gtk.ApplicationWindow):
         #
         self.headerbar = Gtk.HeaderBar.new()
         self.headerbar.set_show_title_buttons(True)
-        self.set_titlebar(self.headerbar)
         # left headerbar box
         self.lhbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         self.headerbar.pack_start(self.lhbox)
@@ -159,7 +159,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self.ham_menu.set_menu_model(menu)
         #
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        self.set_child(self.main_box)
+        self.set_content(self.main_box)
+        self.main_box.append(self.headerbar)
         #
         self.editor_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         self.main_box.append(self.editor_box)
@@ -275,7 +276,7 @@ class MainWindow(Gtk.ApplicationWindow):
     def dialog_action(self, _obj, _res, _data=None, _data2=None):
         if _data == "CLOSEAPP":
             _result = _obj.choose_finish(_res)
-            if _result == 0:
+            if _result == "0":
                 _terminal = _data2
                 #
                 ret = self.terminate_process(_terminal.pid)
@@ -288,7 +289,7 @@ class MainWindow(Gtk.ApplicationWindow):
                     _terminal.grab_focus()
         elif _data == "CLOSEAPP2":
             _result = _obj.choose_finish(_res)
-            if _result == 0:
+            if _result == "0":
                 _terminal = _data2
                 #
                 ret = self.terminate_process(_terminal.pid)
@@ -305,7 +306,7 @@ class MainWindow(Gtk.ApplicationWindow):
                     _terminal.grab_focus()
         elif _data == None:
             _result = _obj.choose_finish(_res)
-            if _result == 0:
+            if _result == "0":
                 if SINGLE_APP == 0:
                     self.app_.quit()
                 else:
@@ -368,20 +369,17 @@ class MainWindow(Gtk.ApplicationWindow):
         
     def on_settings_action(self, action, param=None):
         WinSettings(self)
-        
+    
     def on_about_action_actived(self, action, param=None):
-        _aboutdial = Gtk.AboutDialog.new()
-        _img = Gtk.Image.new_from_file(os.path.join(HOME_CONFIG,"icons","com.quartz.terminal.emulator.svg"))
-        _paintable = _img.get_paintable()
-        _aboutdial.set_logo(_paintable)
-        _aboutdial.set_program_name(ENAME)
-        _aboutdial.set_version(VERSION)
-        _aboutdial.set_authors(["Philip J. Fry"])
+        _aboutdial = Adw.AboutDialog.new()
+        _aboutdial.set_presentation_mode(Adw.DialogPresentationMode.FLOATING)#.BOTTOM_SHEET)#.FLOATING)
+        _aboutdial.set_application_icon("com.Prism.download.manager")
+        _aboutdial.set_developers(["Philip J. Fry"])
         _aboutdial.set_comments("Made for me 🙂")
+        _aboutdial.set_version(VERSION)
         _aboutdial.set_website(ESITE)
         _aboutdial.set_license_type(Gtk.License.GPL_3_0_ONLY)
-        _aboutdial.set_transient_for(self_main)
-        _aboutdial.present()
+        _aboutdial.present(self)
         
     def get_font_scaling(self):
         text_scaling = 1
@@ -712,18 +710,21 @@ class ScrolWin(Gtk.ScrolledWindow):
             AlDial(self_main, _lang.TMSG1)
             self.terminal.grab_focus()
 
-class AlDial(Gtk.AlertDialog):
+class AlDial(Adw.AlertDialog):
     def __init__(self, _parent, _str1):
         super().__init__()
         self._parent = _parent
         self._str1 = _str1
-        #
-        self.set_message(self._str1)
-        #
-        self.show(self._parent)
+        self.set_body(self._str1)
+        self.add_response("close", _lang.CLOSE)
+        self.connect("response", self.on_close)
+        self.present(self_main)
+        
+    def on_close(self, _d, _r):
+        self.close()
 
 # yes/no dialog
-class YNDial(Gtk.AlertDialog):
+class YNDial(Adw.AlertDialog):
     def __init__(self, _parent, _str1, _str2, _data, _data2):
         super().__init__()
         self._parent = _parent
@@ -732,34 +733,30 @@ class YNDial(Gtk.AlertDialog):
         self._data = _data
         self._data2 = _data2
         #
-        self.set_buttons([_lang.YES, _lang.NO])
-        self.props.cancel_button = 1
-        #
-        self.set_message(self._str1)
-        self.set_detail(self._str2)
+        self.add_response("0", _lang.YES)
+        self.add_response("1", _lang.NO)
+        self.set_heading(self._str1)
+        self.set_body(self._str2)
         #
         self.choose(self._parent, None, self._parent.dialog_action, self._data, self._data2)
 
 ##################
 
-class WinSettings(Gtk.Window):
+class WinSettings(Adw.Dialog):
     def __init__(self, _parent):
         super().__init__()
         self._parent = _parent
-        self.set_transient_for(self._parent)
-        self.set_destroy_with_parent(True)
         self.set_name("settingdialog")
-        self.set_resizable(True)
         self.set_size_request(800, 300)
         self.set_title(_lang.FSETTINGS)
-        self.set_icon_name("com.quartz.terminal.emulator")
+        # self.set_icon_name("com.quartz.terminal.emulator")
         #
         self.headerbar = Gtk.HeaderBar.new()
-        self.set_titlebar(self.headerbar)
         self.headerbar.set_show_title_buttons(False)
         #
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.set_child(self.main_box)
+        self.main_box.append(self.headerbar)
         #
         self.stack_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         self.main_box.append(self.stack_box)
@@ -770,6 +767,7 @@ class WinSettings(Gtk.Window):
         #
         btn_apply = Gtk.Button(label=_lang.APPLY)
         btn_apply.connect("clicked", self.on_apply)
+        btn_apply.set_css_classes(["suggested-action",""])
         self.headerbar.pack_start(btn_apply)
         #
         btn_close = Gtk.Button(label=_lang.CLOSE)
@@ -817,7 +815,7 @@ class WinSettings(Gtk.Window):
         bgrid1.attach_next_to(self.fcolor_btn,lbl01,1,1,1)
         #
         ########
-        self.present()
+        self.present(self._parent)
     
     def on_font_family(self, _w):
         _fd = Gtk.FontDialog.new()
@@ -878,16 +876,16 @@ class WinSettings(Gtk.Window):
         except Exception as E:
             AlDial(self_main, str(E))
         #
-        self.destroy()
+        self.close()
         _sw.terminal.grab_focus()
     
     def on_close(self, w):
-        self.destroy()
+        self.close()
         _sw = self._parent._notebook.get_nth_page(self._parent._notebook.get_current_page())
         _sw.terminal.grab_focus()
 
 
-class MyApp(Gtk.Application):
+class MyApp(Adw.Application):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         _e2 = GLib.OptionEntry()
