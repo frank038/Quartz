@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.0 beta"
+VERSION = "0.9.1 beta"
 ENAME = "Quartz"
 ESITE = "https://github.com/frank038/Quartz"
 
@@ -819,6 +819,7 @@ class WinSettings(Adw.Dialog):
     
     def on_font_family(self, _w):
         _fd = Gtk.FontDialog.new()
+        _fd.set_modal(True)
         def font_choosed(source_object, res, data):
             try:
                 _pango_font_family = _fd.choose_family_finish(res)
@@ -826,7 +827,7 @@ class WinSettings(Adw.Dialog):
                 return
             _font_name = _pango_font_family.get_name()
             self.set_terminal_family(_font_name)
-        _fd.choose_family(self, None, None, font_choosed, None)
+        _fd.choose_family(self_main, None, None, font_choosed, None)
         
     def set_terminal_family(self, _font_name):
         n_pages = self._parent._notebook.get_n_pages()
@@ -853,6 +854,7 @@ class WinSettings(Adw.Dialog):
         global WWIDTH
         global WHEIGHT
         global FOREGROUND_COLOR
+        global FONT_SIZE
         _sw = self._parent._notebook.get_nth_page(self._parent._notebook.get_current_page())
         #
         WWIDTH = self._parent.get_width()
