@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.1 beta"
+VERSION = "0.9.2 beta"
 ENAME = "Quartz"
 ESITE = "https://github.com/frank038/Quartz"
 
@@ -893,8 +893,8 @@ class MyApp(Adw.Application):
         _e2 = GLib.OptionEntry()
         _e2.arg=GLib.OptionArg.NONE
         _e2.arg_data=None
-        _e2.arg_description="File path"
-        _e2.description="Working directory"
+        _e2.arg_description=None
+        _e2.description="DIRECTORY (Set the terminal's working directory)"
         _e2.flags=GLib.OptionFlags.FILENAME
         _e2.long_name="working-directory"
         _e2.short_name=ord("w")
@@ -904,7 +904,7 @@ class MyApp(Adw.Application):
         _e3.arg=int(GLib.OptionArg.NONE)
         _e3.arg_data=None
         _e3.arg_description=None
-        _e3.description="Execute a shell program"
+        _e3.description="PROGRAM (Execute a shell program)"
         _e3.flags=GLib.OptionFlags.NONE
         _e3.long_name="execute"
         _e3.short_name=ord("e")
