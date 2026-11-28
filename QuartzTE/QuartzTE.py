@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.2 beta"
+VERSION = "0.9.3"
 ENAME = "Quartz"
 ESITE = "https://github.com/frank038/Quartz"
 
@@ -42,7 +42,14 @@ else:
     HOME_CONFIG = _curr_dir
 
 sys.path.append(os.path.join(HOME_CONFIG, "langs"))
-_lang = __import__("en")
+_lang_names = GLib.get_language_names()
+_langs_application = os.listdir(os.path.join(HOME_CONFIG, "langs"))
+for l_lang in _lang_names:
+    if l_lang+".py" in _langs_application:
+        _lang = __import__(l_lang)
+        break
+else:
+    _lang = __import__("en")
 
 # the clipboard
 clipboard = Gdk.Display.get_default().get_clipboard()
@@ -753,6 +760,9 @@ class WinSettings(Adw.Dialog):
         #
         self.headerbar = Gtk.HeaderBar.new()
         self.headerbar.set_show_title_buttons(False)
+        headerbar_lbl = Gtk.Label(label="<b>"+_lang.FSETTINGS+"</b>")
+        headerbar_lbl.set_use_markup(True)
+        self.headerbar.set_title_widget(headerbar_lbl)
         #
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.set_child(self.main_box)
